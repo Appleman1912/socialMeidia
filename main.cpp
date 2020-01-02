@@ -5,7 +5,7 @@ using namespace std;
 #include <map>
 #include <queue>
 #include <fstream>
-#include <limits>
+
 
 const string filename = "sm.txt";
 const int MAX_SIZE_OF_GRAPH = 32768;
@@ -254,20 +254,14 @@ private:
 	}
 
 
+	User ReturnUserByID(int id);
+
 	bool CheckIfTwoUsersAreBanned(const string& name1,const string& name2);
 
  public:
-
-	 void printUsers()
-	 {
-		 for (unsigned int i = 0; i < allUsers.size(); i++)
-		 {
-			 cout << allUsers[i].GetName() << " and age " << allUsers[i].getAge() << " and id " << allUsers[i].GetId() << endl;
-		 }
-	 }
-	 //works
+	 
 	SocialMedia();
-	//works
+
 	bool AddUser( User& temp);
 	
 	bool MakeFriendShip(const string& user1, const string& user2,string typeOfFriendShip="normal");
@@ -286,19 +280,30 @@ private:
 
 	void RestoreGraph(const string& filename);
 
-	User ReturnUserByID(int id)
-	{
-		for (int i = 0; i < (signed)allUsers.size(); i++)
-		{
-			if (allUsers[i].GetId() == id)
-			{
-				return allUsers[i];
-			}
-		}
-	}
+	void printUsers();
+
+	
 
 };
 
+void SocialMedia::printUsers()
+{
+	for (unsigned int i = 0; i < allUsers.size(); i++)
+	{
+		cout << allUsers[i].GetName() << " and age " << allUsers[i].getAge() << " and id " << allUsers[i].GetId() << endl;
+	}
+}
+
+User SocialMedia::ReturnUserByID(int id)
+{
+	for (int i = 0; i < (signed)allUsers.size(); i++)
+	{
+		if (allUsers[i].GetId() == id)
+		{
+			return allUsers[i];
+		}
+	}
+}
 
 void SocialMedia::WriteToFileUsers(const string& filename)
 {
@@ -407,7 +412,7 @@ void SocialMedia::RestoreGraph(const string& filename)
 		}
 	}
 	this->printUsers();
-	this->PRINTALLFRIENDSHIPS();
+	//this->PRINTALLFRIENDSHIPS();
 	//
 
 }
@@ -421,7 +426,16 @@ void SocialMedia::Recommend(const string& name)
 		return;
 	}
 
+
 	User temp = ReturnUser(name);
+
+	if (graph[temp.GetId()].empty())
+	{
+		//vector<vector<pair<User, int> > > copyGraph(graph);
+
+		
+	}
+
 	vector<pair<User, int>> friends = graph[temp.GetId()];
 	int size = friends.size();
 	vector<bool> visited(MAX_SIZE_OF_GRAPH, false);
@@ -439,7 +453,7 @@ void SocialMedia::Recommend(const string& name)
 
 			for (int j = 0; j < friendOfFriends.size(); j++)
 			{
-				if (!visited[friendOfFriends[j].first.GetId()] ||  friendOfFriends[j].second!=4)
+				if (!visited[friendOfFriends[j].first.GetId()] &&  friendOfFriends[j].second!=4)
 				{
 					cout << friendOfFriends[j].first.GetName() << ' ';
 					//sumRelation += graph[index][j].second;
@@ -481,7 +495,11 @@ void SocialMedia::Recommend(const string& name)
 
 			for (int i = 0; i < size2; i++)
 			{
-				q.push(make_pair(graph[v.first.GetId()][i].first, v.second + graph[v.first.GetId()][i].second));
+				if (!visited[graph[v.first.GetId()][i].first.GetId()])
+				{
+					q.push(make_pair(graph[v.first.GetId()][i].first, v.second + graph[v.first.GetId()][i].second));
+					visited[graph[v.first.GetId()][i].first.GetId()] = true;
+				}
 			}
 		}
 	}
@@ -608,10 +626,32 @@ bool SocialMedia::MakeFriendShip(const string& user1, const string& user2,string
 	if (CheckIfUsersAreLinked(u1, u2) == true)
 	{
 		cout << "They are already friends" << endl;
-		cout << "Because they are linked " << endl;
-		PrintFriendShip(user1, user2);
+		cout << "Relinking  " << endl;
+		int relation = ReturnCommand(typeOfFriendShip);
+		int size1 = graph[u1.GetId()].size();
+		for (int i = 0; i < size1; i++)
+		{
+			if (graph[u1.GetId()][i].first.GetName() == name2)
+			{
 
-		return false;
+				
+				graph[u1.GetId()][i].second = relation;
+				break;
+			}
+		}
+
+		int size2 = graph[u2.GetId()].size();
+		for (int i = 0; i < size2; i++)
+		{
+			if (graph[u2.GetId()][i].first.GetName() == name1)
+			{
+				graph[u2.GetId()][i].second = relation;
+				break;
+			}
+		}
+
+		//PrintFriendShip(user1, user2);
+		return true;
 	}
 	else
 	{
@@ -619,7 +659,7 @@ bool SocialMedia::MakeFriendShip(const string& user1, const string& user2,string
 		graph[u1.GetId()].push_back(make_pair(u2, relation));
 		graph[u2.GetId()].push_back(make_pair(u1, relation));
 
-		PrintFriendShip(user1, user2);
+		//PrintFriendShip(user1, user2);
 
 
 		cout << "FriendShip Made :) " << endl;
@@ -642,7 +682,7 @@ bool SocialMedia::RemoveUser(const string& name)
 		int index = ReturnIndexOfUser(name);
 		RemoveFromGraph(name);
 		allUsers.erase(allUsers.begin() + index);
-		this->PRINTALLFRIENDSHIPS();
+	//	this->PRINTALLFRIENDSHIPS();
 		return true;
 	}
 	return true;
@@ -665,42 +705,19 @@ void SocialMedia::RemoveFromGraph(const string& name)
 
 	for (int i = 0; i < size; i++)
 	{
-		cout<<"Array of friends is: " << saveFriendsOfDeletedUser[i].first.GetName() << ' '<<endl;
-	}
-	cout << endl;
 
-	for (int i = 0; i < size; i++)
-	{
-
-		cout << "SIZE OF FRIENDSHIP LISR IS " << graph[saveFriendsOfDeletedUser[i].first.GetId()].size() << " "<< saveFriendsOfDeletedUser[i].first.GetId() << endl;
 		for (int j = 0; j < (signed)graph[saveFriendsOfDeletedUser[i].first.GetId()].size(); j++)
 		{
 
 			if (graph[saveFriendsOfDeletedUser[i].first.GetId()][j].first.GetName() == name)
 			{
 				graph[saveFriendsOfDeletedUser[i].first.GetId()].erase(graph[saveFriendsOfDeletedUser[i].first.GetId()].begin() + j);
-
-
-				cout << "New Friednshiplist of : "<<saveFriendsOfDeletedUser[i].first.GetName() << endl;
-				for (int k = 0; k < (signed)graph[saveFriendsOfDeletedUser[i].first.GetId()].size(); k++)
-				{
-					cout << graph[saveFriendsOfDeletedUser[i].first.GetId()][k].first.GetName() << " ";
-				}
-				cout << endl;
-
-
 				break;
-
-			}
-			
-			
+			}		
 		}
 	}
 
 	indexOfReomvedUser.push_back(IndexToRemove);
-  // graph[IndexToRemove].assign(-9graph[IndexToRemove].size());
-//	cout<<graph[IndexToRemove]
-
 }
 
 
@@ -737,10 +754,12 @@ void SocialMedia::InfoForSearchedUser(const string& name)
 	{
 		if (graph[indexOfClient][i].second == BAN_VALUE)
 		{
-			cout << "It looks like users are bannned "<<endl;
+			//cout << "It looks like users are bannned  :"<< graph[indexOfClient][i].first.GetName() <<endl;
+			continue;
 		}
-		cout << graph[indexOfClient][i].first.GetName() << endl;
+		cout << graph[indexOfClient][i].first.GetName() <<" ";
 	}
+	cout << endl;
 }
 
 
@@ -780,12 +799,6 @@ void SocialMedia::Ban(const string& name1, const string& name2)
 
 
 
-//	if (!CheckIfUsersAreLinked(client1, client2))
-//	{
-	//	cout << "PROBLEM USERS ARE NOT FRIENDS SO we can not ban them" << endl;
-	//	return;
-//	}
-
 
 
 	int idClient1 = client1.GetId();
@@ -794,14 +807,48 @@ void SocialMedia::Ban(const string& name1, const string& name2)
 	int sizeFriendShipClient1 = graph[idClient1].size();
 	int sizeFreindShipClient2 = graph[idClient2].size();
 
+	User u1 = ReturnUser(name1);
+	User u2 = ReturnUser(name2);
+
+	bool found = false;
+
 	for (int i = 0; i < sizeFriendShipClient1; i++)
 	{
 		if (graph[idClient1][i].first.GetName() == name2)
 		{
 			graph[idClient1][i].second = BAN_VALUE;
+			found = true;
 			break;
+
 		}
 	}
+
+	if (!found)
+	{
+		this->MakeFriendShip(name1, name2);
+		for (int i = 0; i < graph[idClient1].size(); i++)
+		{
+			if (graph[idClient1][i].first.GetName() == name2)
+			{
+				graph[idClient1][i].second = BAN_VALUE;
+				found = true;
+				break;
+
+			}
+		}
+
+		for (int i = 0; i < graph[idClient2].size(); i++)
+		{
+			if (graph[idClient2][i].first.GetName() == name1)
+			{
+				graph[idClient2][i].second = BAN_VALUE;
+				break;
+			}
+		}
+		return;
+
+	}
+
 
 	for (int i = 0; i < sizeFreindShipClient2; i++)
 	{
@@ -913,39 +960,13 @@ void SocialMedia::RemoveFriendShip(const string& name1, const string& name2)
 		}
 	}
 	cout << " FriendShip Removed :(" << endl;
-	  PrintFriendShip(name1, name2);
+	//  PrintFriendShip(name1, name2);
 } 
 
-void Print(vector<int>& v)
-{
-	int size = v.size();
-	for (int i = 0; i < size; i++)
-	{
-		cout << v[i] << ' ';
-	}
-	cout << endl;
-}
 
 int main()
 {
-
-
-
-	vector<vector<pair<int,int>>> p;
-	p.resize(3);
-	p[0] = { {1,2},{1,2} };
-	//p[1] = { 5,6,7,8 };
-	//p[2] = { 9 };
-	
-
-// TESTING INTERFACE
-
-	//User P("Ivan", 18);
 	SocialMedia facebook;
-
-
-
-
 	facebook.RestoreGraph(filename);
 
 	while (true)
